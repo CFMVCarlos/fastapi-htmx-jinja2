@@ -1,0 +1,73 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fastapi-htmx-jinja2"
+version = "0.1.0"
+description = "FastAPI application with HTMX and Jinja2 templates"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "fastapi>=0.115.5",
+    "jinja2>=3.1.4",
+    "sse-starlette>=2.1.3",
+    "uvicorn>=0.32.1",
+    "websockets>=14.1",
+]
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.28.0",
+    "httpx>=0.27.2",
+    "pydoclint>=0.6.0",
+    "pytest>=8.3.3",
+    "ruff>=0.9.0",
+    "ty>=0.0.86",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/app"]
+
+
+[tool.ruff]
+line-length = 88
+preview = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "CPY",
+    "FIX",
+    "TD",
+    "missing-trailing-comma",
+    "magic-value-comparison",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["assert", "private-member-access", "ANN", "D", "line-too-long", "import-outside-top-level", "runtime-cast-value"]
+"src/app/main.py" = ["unused-function-argument", "unused-async", "commented-out-code"]
+"src/app/api/services/*" = ["no-self-use", "line-too-long"]
+"src/app/routers/builtin.py" = ["line-too-long", "invalid-argument-name", "non-lowercase-variable-in-function", "global-statement", "suspicious-non-cryptographic-random-usage"]
+"src/app/routers/extensions.py" = ["line-too-long", "invalid-argument-name", "missing-return-type-private-function"]
+"src/app/routers/__init__.py" = ["undocumented-public-package"]
+"src/app/__init__.py" = ["undocumented-public-package", "non-empty-init-module"]
+
+[tool.pydoclint]
+exclude = ".git|.tox|.venv|build|dist|.uv-cache|.ruff_cache"
+skip-checking-short-docstrings = false
+check-style-mismatch = true
+check-arg-defaults = true
+show-filenames-in-every-violation-message = true
+check-class-attributes = false
+
+[tool.basedpyright]
+pythonVersion = "3.13"
+typeCheckingMode = "standard"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

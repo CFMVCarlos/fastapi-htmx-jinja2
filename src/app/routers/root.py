@@ -1,23 +1,29 @@
-from app import templates  # Importing templates from your application's context
+"""Root URL router module handling homepage and base endpoints."""
+
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import HTMLResponse
 
+from app import templates  # Importing templates from your application's context
+
 router = APIRouter()
+
 
 # --------------------------------------------------------------------------------
 # Redirects to the index page
 # --------------------------------------------------------------------------------
 @router.get("/", summary="Redirects to the index page")
 def read_root(request: Request) -> Response:
-    """
-    This route handles requests to the root URL. It sets up some example conditions
-    and passes them along with a list of people to the 'index.html' template.
-    
-    Args:
-        request (Request): The FastAPI request object.
-    
-    Returns:
-        Response: A rendered HTML response using the 'index.html' template.
+    """Handle requests to the root URL.
+
+    Parameters
+    ----------
+    request : Request
+        The FastAPI request object.
+
+    Returns
+    -------
+    Response
+        A rendered HTML response using the 'index.html' template.
     """
     # Example conditions
     bool_condition1, bool_condition2, bool_condition3 = (
@@ -35,9 +41,9 @@ def read_root(request: Request) -> Response:
 
     # Render the 'index.html' template with context
     return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
+        request=request,
+        name="index.html",
+        context={
             "bool_condition1": bool_condition1,
             "bool_condition2": bool_condition2,
             "bool_condition3": bool_condition3,
@@ -51,12 +57,11 @@ def read_root(request: Request) -> Response:
 # --------------------------------------------------------------------------------
 @router.delete("/")
 def delete_root() -> HTMLResponse:
-    """
-    Handles DELETE requests to the root URL. Returns a simple HTTP response with
-    status code 200 to indicate success.
-    
-    Returns:
-        HTMLResponse: An empty response with status code 200.
+    """Handle DELETE requests to the root URL.
+
+    Returns
+    -------
+    HTMLResponse
+        An empty response with status code 200.
     """
     return HTMLResponse(status_code=200)
-

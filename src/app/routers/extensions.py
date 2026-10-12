@@ -1,33 +1,45 @@
+"""Extensions router module providing SSE and WebSocket endpoints."""
+
 import asyncio
-import datetime
+import datetime as dt
 import html
-import time
-from typing import List, NoReturn, Optional
+import logging
 
 from fastapi import APIRouter, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from sse_starlette import EventSourceResponse
-import logging
 
 router = APIRouter(prefix="/extensions", tags=["EXT"])
 
 # Set up logging
 logger = logging.getLogger(__name__)  # Create a logger object for this module
 logger.setLevel(logging.INFO)  # Set the logging level to INFO
-handler = logging.StreamHandler()  # Create a stream handler to output logs to the console
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')  # Define the log message format
+handler = (
+    logging.StreamHandler()
+)  # Create a stream handler to output logs to the console
+formatter = logging.Formatter(
+    "%(asctime)s - %(levelname)s - %(message)s",
+)  # Define the log message format
 handler.setFormatter(formatter)  # Set the formatter for the handler
 logger.addHandler(handler)  # Add the handler to the logger
+
 
 # --------------------------------------------------------------------------------
 # SSE Event Triggered Route
 # --------------------------------------------------------------------------------
 @router.get("/sse_event_triggered", response_class=HTMLResponse)
-async def sse_event_triggered(
-    dataFromSSE: Optional[str] = None
-) -> HTMLResponse:
-    """
-    Endpoint to trigger SSE event. It returns the data sent from SSE, if provided.
+async def sse_event_triggered(dataFromSSE: str | None = None) -> HTMLResponse:
+    """Return data received from Server-Sent Event trigger.
+
+    Parameters
+    ----------
+    dataFromSSE : str | None, default=None
+        Data string payload sent via SSE.
+
+    Returns
+    -------
+    HTMLResponse
+        HTML response echoing the escaped content.
     """
     safe_content = html.escape(dataFromSSE) if dataFromSSE else "No data provided"
     return HTMLResponse(content=safe_content)
@@ -38,10 +50,19 @@ async def sse_event_triggered(
 # --------------------------------------------------------------------------------
 @router.get("/stream")
 async def message_stream(request: Request) -> EventSourceResponse:
+    """Stream events to the client using Server-Sent Events.
+
+    Parameters
+    ----------
+    request : Request
+        Incoming request to monitor client disconnects.
+
+    Returns
+    -------
+    EventSourceResponse
+        EventSource response streaming SSE messages.
     """
-    Streams events to the client using Server-Sent Events (SSE).
-    Generates new messages every second.
-    """
+
     async def event_generator():
         count = 0
         while True:
@@ -61,7 +82,7 @@ async def message_stream(request: Request) -> EventSourceResponse:
             if count % 10 == 0:
                 yield {
                     "event": "sse_event_10",
-                    "data": f"<div>Milestone Event: Batch #{int(count/10)} reached</div>",
+                    "data": f"<div>Milestone Event: Batch #{int(count / 10)} reached</div>",
                 }
 
             # Sleep for 1 second before sending the next message
@@ -74,10 +95,13 @@ async def message_stream(request: Request) -> EventSourceResponse:
 # WebSocket Route
 # --------------------------------------------------------------------------------
 @router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket) -> NoReturn:
-    """
-    Handles WebSocket connections. Receives JSON messages from the client
-    and sends them to all connected clients.
+async def websocket_endpoint(websocket: WebSocket) -> None:
+    """Handle WebSocket connections and broadcast messages.
+
+    Parameters
+    ----------
+    websocket : WebSocket
+        Connected WebSocket instance.
     """
     await manager.connect(websocket)
     try:
@@ -89,9 +113,9 @@ async def websocket_endpoint(websocket: WebSocket) -> NoReturn:
     except WebSocketDisconnect:
         # Handle client disconnection
         logger.info("Client has disconnected.")
-    except Exception as e:
+    except Exception:
         # Handle any unexpected errors
-        logger.error(f"Error Occurred: {e}")
+        logger.exception("Error Occurred")
     finally:
         # Ensure the client is disconnected properly
         await manager.disconnect(websocket)
@@ -102,9 +126,12 @@ async def websocket_endpoint(websocket: WebSocket) -> NoReturn:
 # --------------------------------------------------------------------------------
 @router.post("/loading_states", response_class=Response)
 async def post_loading_states() -> Response:
-    """
-    Simulates a loading state by introducing a delay.
-    Typically used when performing a time-consuming task.
+    """Simulate a time-consuming operation with delay.
+
+    Returns
+    -------
+    Response
+        Empty response with HTTP 204 status.
     """
     await asyncio.sleep(5)  # Simulate a delay of 5 seconds
     return Response(status_code=204)  # No content to return
@@ -115,8 +142,12 @@ async def post_loading_states() -> Response:
 # --------------------------------------------------------------------------------
 @router.get("/loading_states", response_class=HTMLResponse)
 async def get_loading_states() -> HTMLResponse:
-    """
-    Returns a simple HTML button that simulates a loading state when clicked.
+    """Return an HTML button that simulates a loading state when clicked.
+
+    Returns
+    -------
+    HTMLResponse
+        Rendered HTML markup for button.
     """
     html_content: str = """
         Click me for preload (Swapped)
@@ -129,9 +160,12 @@ async def get_loading_states() -> HTMLResponse:
 # --------------------------------------------------------------------------------
 @router.get("/path_deps", response_class=HTMLResponse)
 async def get_path_deps() -> HTMLResponse:
-    """
-    Returns a simple HTML list item.
-    This is an example of a path dependency in a route.
+    """Return a simple HTML list item.
+
+    Returns
+    -------
+    HTMLResponse
+        Rendered list item HTML content.
     """
     html_content: str = """
         <li>Path Deps</li>
@@ -144,9 +178,12 @@ async def get_path_deps() -> HTMLResponse:
 # --------------------------------------------------------------------------------
 @router.post("/path_deps", response_class=HTMLResponse)
 async def post_path_deps() -> HTMLResponse:
-    """
-    Returns an HTML button that can be used to post more data to the list.
-    The button will not trigger a page reload and uses hx-swap for dynamic content update.
+    """Return an HTML button to post more data to the list.
+
+    Returns
+    -------
+    HTMLResponse
+        Rendered button HTML content.
     """
     html_content: str = """
         <button hx-post="/path_deps" hx-swap="none">Post more to the list</button>
@@ -159,8 +196,12 @@ async def post_path_deps() -> HTMLResponse:
 # --------------------------------------------------------------------------------
 @router.get("/sweet_alert_confirmed", response_class=HTMLResponse)
 async def sweet_alert_confirmed() -> HTMLResponse:
-    """
-    Returns a confirmation message when a sweet alert is confirmed.
+    """Return a confirmation message when sweet alert is confirmed.
+
+    Returns
+    -------
+    HTMLResponse
+        Rendered confirmation message HTML content.
     """
     html_content: str = """
         Sweet Alert Confirmed
@@ -172,34 +213,45 @@ async def sweet_alert_confirmed() -> HTMLResponse:
 # SSE Connection Manager (Handles WebSocket connections)
 # --------------------------------------------------------------------------------
 class ConnectionManager:
-    def __init__(self):
-        """
-        Initializes the connection manager with an empty list of active connections.
-        """
-        self.active_connections: List[WebSocket] = []
+    """Manage active WebSocket connections and broadcasting."""
 
-    async def connect(self, websocket: WebSocket) -> NoReturn:
-        """
-        Accepts a WebSocket connection and adds it to the list of active connections.
+    def __init__(self) -> None:
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket) -> None:
+        """Accept a WebSocket connection and register it.
+
+        Parameters
+        ----------
+        websocket : WebSocket
+            WebSocket instance to register.
         """
         await websocket.accept()
         self.active_connections.append(websocket)
 
-    async def disconnect(self, websocket: WebSocket) -> NoReturn:
-        """
-        Removes the WebSocket connection from the list of active connections.
+    async def disconnect(self, websocket: WebSocket) -> None:
+        """Remove a WebSocket connection from active list.
+
+        Parameters
+        ----------
+        websocket : WebSocket
+            WebSocket instance to remove.
         """
         self.active_connections.remove(websocket)
 
-    async def send_message(self, message: str) -> NoReturn:
-        """
-        Sends a message to all active WebSocket connections. Formats the message with a timestamp.
+    async def send_message(self, message: str) -> None:
+        """Broadcast a message to all active WebSocket connections.
+
+        Parameters
+        ----------
+        message : str
+            Message string to broadcast.
         """
         if not self.active_connections:
             return
 
         # Format the current time once for all connections
-        formatted_time: str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        formatted_time: str = dt.datetime.now(dt.UTC).strftime("%Y-%m-%d %H:%M:%S")
         escaped_message: str = html.escape(message)
         content: str = f"""
             <div hx-swap-oob="beforeend:#content">
@@ -209,6 +261,7 @@ class ConnectionManager:
         """
         for connection in self.active_connections:
             await connection.send_text(content)
+
 
 # Initialize the connection manager instance
 manager: ConnectionManager = ConnectionManager()
